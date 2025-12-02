@@ -32,14 +32,14 @@ def user_ui(request: Request):
     return templates.TemplateResponse("user.html", {"request": request})
 # --- User Endpoints ---
 
-@app.get("/user/{username}", response_model=schemas.UserResponse)
+@app.get("/api/user/{username}", response_model=schemas.UserResponse)
 def get_user_home(username: str, db: Session = Depends(get_db)):
     user = crud.get_user_by_username(db, username=username)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.post("/pay")
+@app.post("/api/pay")
 def make_payment(payment: schemas.PaymentRequest, db: Session = Depends(get_db)):
     # 1. Identify the Payer (Hardcoded to 'user' for this demo)
     payer = crud.get_user_by_username(db, "user")
@@ -57,7 +57,7 @@ def make_payment(payment: schemas.PaymentRequest, db: Session = Depends(get_db))
 
 # --- Merchant Endpoints ---
 
-@app.get("/merchant/{handle}")
+@app.get("/api/merchant/{handle}")
 def get_merchant_dashboard(handle: str, db: Session = Depends(get_db)):
     # 1. Get Merchant Details
     merchant = crud.get_merchant_by_handle(db, handle)
