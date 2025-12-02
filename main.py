@@ -1,6 +1,19 @@
-def main():
-    print("Hello from myapp!")
+from fastapi import FastAPI
+from fastapi.params import Body
+from pydantic import BaseModel
+from datetime import datetime
+import uuid
+from typing import List
+app=FastAPI()
 
 
-if __name__ == "__main__":
-    main()
+
+
+
+
+@app.get("/")
+def root():
+    return {"message": "Hello World"}
+print("Running on http://localhost:8000/")
+
+        
