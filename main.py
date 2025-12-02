@@ -6,11 +6,27 @@ import schemas
 
 app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"message": "Hello World"}
-print("Running on http://localhost:8000/")
+# 1. Mount Static Files (CSS, JS, Images)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# 2. Configure HTML Templates
+templates = Jinja2Templates(directory="templates")
+
+# --- Web UI Routes (Frontend) ---
+
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request):
+    # This serves the Landing Page
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/merchant", response_class=HTMLResponse)
+def merchant_ui(request: Request):
+    return templates.TemplateResponse("merchant.html", {"request": request})
+
+@app.get("/user", response_class=HTMLResponse)
+def user_ui(request: Request):
+    return templates.TemplateResponse("user.html", {"request": request})
 # --- User Endpoints ---
 
 @app.get("/user/{username}", response_model=schemas.UserResponse)

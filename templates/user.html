@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex justify-center items-center">
+
+    <div class="w-full max-w-sm h-full md:h-[600px] bg-white md:rounded-3xl shadow-2xl overflow-hidden relative flex flex-col">
+        
+        <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+            <h1 class="font-bold text-lg">My Wallet</h1>
+            <a href="/" class="text-xs opacity-80">Logout</a>
+        </div>
+
+        <div id="screen-home" class="p-6 flex-1 flex flex-col justify-between">
+            <div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center mb-6">
+                    <p class="text-gray-500 text-sm">Available Balance</p>
+                    <h2 class="text-3xl font-bold text-blue-700 mt-1">₹<span id="home-balance">...</span></h2>
+                </div>
+
+                <div class="space-y-3">
+                    <p class="text-xs font-bold text-gray-400 uppercase">Recent Actions</p>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-red-500 text-xs font-bold">↓</div>
+                            <span class="text-sm font-medium">Starbucks</span>
+                        </div>
+                        <span class="text-sm font-bold text-red-500">- ₹250</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="showScanner()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center justify-center space-x-2">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 16h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                <span>Scan QR Code</span>
+            </button>
+        </div>
+
+        <div id="screen-scan" class="hidden absolute inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center p-6 z-20">
+            <h2 class="text-white mb-4 font-bold">Simulate Scanning</h2>
+            <p class="text-gray-400 text-sm mb-4 text-center">Since we have no camera, paste the Merchant's QR Text here (e.g., from the Merchant screen)</p>
+            
+            <textarea id="scanInput" class="w-full p-3 rounded text-sm font-mono mb-4" rows="3" placeholder="upi://pay?pa=@merchant&am=500"></textarea>
+            
+            <div class="flex space-x-3 w-full">
+                <button onclick="closeScanner()" class="flex-1 bg-gray-600 text-white py-2 rounded">Cancel</button>
+                <button onclick="processScan()" class="flex-1 bg-blue-500 text-white py-2 rounded font-bold">Scan It</button>
+            </div>
+        </div>
+
+        <div id="screen-pay" class="hidden absolute inset-0 bg-white z-10 flex flex-col p-6">
+            <button onclick="cancelPayment()" class="mb-6 text-gray-500">← Cancel</button>
+            
+            <div class="flex-1 flex flex-col items-center mt-8">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl mb-4">🏪</div>
+                <p class="text-gray-500 text-sm">Paying to</p>
+                <h2 id="pay-merchant" class="text-xl font-bold text-gray-800">@merchant</h2>
+                
+                <div class="mt-8 text-center">
+                    <p class="text-gray-500 text-sm">Amount</p>
+                    <h1 class="text-4xl font-bold text-gray-900 mt-2">₹<span id="pay-amount">0</span></h1>
+                </div>
+
+                <div class="mt-12 w-full">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Enter UPI PIN</label>
+                    <input type="password" id="pinInput" maxlength="4" class="w-full text-center text-3xl tracking-widest border-b-2 border-gray-300 focus:border-blue-500 outline-none py-2" placeholder="••••">
+                </div>
+            </div>
+
+            <button onclick="confirmPayment()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-green-700 mt-6">
+                Pay Securely
+            </button>
+        </div>
+
+        <div id="screen-result" class="hidden absolute inset-0 bg-white z-30 flex flex-col items-center justify-center p-8 text-center">
+            <div id="result-icon" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4"></div>
+            <h2 id="result-title" class="text-2xl font-bold mb-2"></h2>
+            <p id="result-msg" class="text-gray-500 mb-8"></p>
+            <button onclick="location.reload()" class="px-6 py-2 bg-gray-200 rounded-full font-bold text-gray-700">Done</button>
+        </div>
+
+    </div>
+
+    <script>
+        let paymentData = {};
+
+        // 1. Load User Balance
+        async function loadUser() {
+            try {
+                // Hardcoded to 'user' for this demo
+                const res = await fetch('/api/user/user');
+                const data = await res.json();
+                document.getElementById('home-balance').innerText = data.balance;
+            } catch (e) { console.error(e); }
+        }
+
+        // 2. Navigation Logic
+        function showScanner() {
+            document.getElementById('screen-scan').classList.remove('hidden');
+        }
+        function closeScanner() {
+            document.getElementById('screen-scan').classList.add('hidden');
+        }
+        function cancelPayment() {
+            document.getElementById('screen-pay').classList.add('hidden');
+        }
+
+        // 3. Process the "Scanned" String
+        function processScan() {
+            const rawText = document.getElementById('scanInput').value;
+            // Expected format: upi://pay?pa=@merchant&am=500
+            
+            try {
+                const urlParams = new URLSearchParams(rawText.split('?')[1]);
+                const merchant = urlParams.get('pa');
+                const amount = urlParams.get('am');
+
+                if(!merchant || !amount) throw new Error("Invalid QR Code");
+
+                paymentData = { merchant, amount };
+
+                // Show Payment Screen
+                document.getElementById('pay-merchant').innerText = merchant;
+                document.getElementById('pay-amount').innerText = amount;
+                
+                closeScanner();
+                document.getElementById('screen-pay').classList.remove('hidden');
+
+            } catch (e) {
+                alert("Invalid QR format! Try: upi://pay?pa=@merchant&am=500");
+            }
+        }
+
+        // 4. Send Payment to Backend
+        async function confirmPayment() {
+            const pin = document.getElementById('pinInput').value;
+            if (!pin) return alert("Please enter PIN");
+
+            try {
+                const res = await fetch('/api/pay', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        receiver_handle: paymentData.merchant,
+                        amount: parseFloat(paymentData.amount),
+                        pin: pin
+                    })
+                });
+
+                const result = await res.json();
+                
+                // Show Result Screen
+                const resultScreen = document.getElementById('screen-result');
+                const icon = document.getElementById('result-icon');
+                
+                resultScreen.classList.remove('hidden');
+                document.getElementById('screen-pay').classList.add('hidden');
+
+                if (res.ok) {
+                    icon.className = "w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 bg-green-100 text-green-600";
+                    icon.innerHTML = "✓";
+                    document.getElementById('result-title').innerText = "Payment Successful";
+                    document.getElementById('result-msg').innerText = `Transaction ID: ${result.transaction_id}`;
+                } else {
+                    icon.className = "w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 bg-red-100 text-red-600";
+                    icon.innerHTML = "✕";
+                    document.getElementById('result-title').innerText = "Payment Failed";
+                    document.getElementById('result-msg').innerText = result.detail;
+                }
+
+            } catch (e) {
+                alert("Network Error");
+            }
+        }
+
+        loadUser();
+    </script>
+</body>
+</html>
